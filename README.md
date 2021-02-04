@@ -6,7 +6,7 @@ The majority of this code is pulled directly from [Pygrid](https://github.com/Op
 2. Install poetry (a `pip` package)
 3. Install `Docker` and `docker-compose`
 4. Start the Docker engine
-5. Head over to the `./postgres-start` subdirectory of this repo, and run `docker compose up -d`. This will start a postgres database on your machine, which PyGrid needs in order to function properly.
+5. Head over to the `./postgres-start` subdirectory of this repo, and run `docker-compose up -d`. This will start a postgres database on your machine, which PyGrid needs in order to function properly.
 6. If you can't manage to get docker working, look online for instructions to start postgres without docker. You will likely have to install postgres.
 7. Head back to the top-level directory of this repo. Run `poetry install`
 8. Finally, from the top-level directory in this repo, run `./run_local.sh`.
