@@ -324,9 +324,12 @@ class CycleManager:
             'model_id': model_id
         }
         try:
-            requests.post(url=orchestration_endpoint, json=data)
-        except requests.exceptions.RequestException as e:
-            print('Could not connect to master node')
+            response = requests.post(url=orchestration_endpoint, json=data)
+            logging.info('Connected to Master Node')
+            logging.info('Response: ', response.content)
+        except requests.exceptions.RequestException:
+            logging.warn('Could not connect to master node')
+            pass
         # END ARTIFICIEN EDIT
 
         if completed_cycles_num < max_cycles or max_cycles == 0:
