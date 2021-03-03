@@ -329,7 +329,7 @@ class CycleManager:
         # START ARTIFICIEN EDIT
         # Report the model progress (percent done at the end of each cycle) to the orchestration node
         try:
-            orchestration_endpoint = os.environ.get("MASTER_NODE_URL") + '/model_progress'
+            orchestration_endpoint = 'http://' + os.environ.get("MASTER_NODE_URL") + '/model_progress'
             data = {
                 'percent_complete': (completed_cycles_num * 100) // max_cycles,
                 'model_id': model_id
