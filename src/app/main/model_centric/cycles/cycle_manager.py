@@ -1,8 +1,9 @@
 # Cycle module imports
 import os
+import requests
 import json
 import logging
-import requests
+import random
 
 # Generic imports
 from datetime import datetime, timedelta
@@ -13,7 +14,7 @@ import torch as th
 from ...core.exceptions import CycleNotFoundError
 
 # PyGrid modules
-from ...core.warehouse import Warehouse
+from ...storage.warehouse import Warehouse
 from ..models import model_manager
 from ..processes import process_manager
 from ..syft_assets import PlanManager
@@ -315,23 +316,6 @@ class CycleManager:
         )
         logging.info("completed_cycles_num: %d" % completed_cycles_num)
         max_cycles = server_config.get("num_cycles", 0)
-
-        # START ARTIFICIEN EDIT
-        # Report the model progress (percent done at the end of each cycle) to the orchestration node
-        orchestration_endpoint = os.environ.get("MASTER_NODE_URL") + '/model_progress'
-        data = {
-            'percent_complete': (completed_cycles_num * 100) // max_cycles,
-            'model_id': model_id
-        }
-        try:
-            response = requests.post(url=orchestration_endpoint, json=data)
-            logging.info('Connected to Master Node')
-            logging.info('Response: ', response.content)
-        except requests.exceptions.RequestException:
-            logging.warn('Could not connect to master node')
-            pass
-        # END ARTIFICIEN EDIT
-
         if completed_cycles_num < max_cycles or max_cycles == 0:
             # make new cycle
             _new_cycle = self.create(
@@ -339,5 +323,22 @@ class CycleManager:
             )
             logging.info("new cycle: %s" % str(_new_cycle))
         else:
-            # TODO - Figure out a way to delete models from SQL, if this is not somehow already happening
             logging.info("FL is done!")
+
+
+        # START ARTIFICIEN EDIT
+        # Report the model progress (percent done at the end of each cycle) to the orchestration node
+        try:
+            orchestration_endpoint = 'http://' + os.environ.get("MASTER_NODE_URL") + '/model_progress'
+            data = {
+                'percent_complete': (completed_cycles_num * 100) // max_cycles,
+                'model_id': model_id
+            }
+            response = requests.post(url=orchestration_endpoint, json=data)
+            logging.info('Connected to Master Node')
+            logging.info('Response: ', response.content)
+        except:
+            logging.warning('Could not connect to master node')
+            pass
+        # END ARTIFICIEN EDIT
+

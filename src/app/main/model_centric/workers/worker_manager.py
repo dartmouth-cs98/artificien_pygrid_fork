@@ -4,7 +4,7 @@ import logging
 from ...core.exceptions import WorkerNotFoundError
 
 # PyGrid imports
-from ...core.warehouse import Warehouse
+from ...storage.warehouse import Warehouse
 from .worker import Worker
 
 

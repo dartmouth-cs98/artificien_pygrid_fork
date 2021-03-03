@@ -18,13 +18,13 @@ from ...data_centric.persistence.object_storage import recover_objects
 
 
 @authenticated_only
-def host_model(message: dict) -> dict:
+def host_model(message: dict) -> str:
     """Save/Store a model into database.
 
     Args:
         message (dict) : Dict containing a serialized model and model's metadata.
     Response:
-        response (dict) : Node's response.
+        response (str) : Node's response.
     """
     encoding = message["encoding"]
     model_id = message[MSG_FIELD.MODEL_ID]
@@ -45,42 +45,42 @@ def host_model(message: dict) -> dict:
         allow_remote_inference,
         mpc,
     )
-    return response
+    return json.dumps(response)
 
 
 @authenticated_only
-def delete_model(message: dict) -> dict:
+def delete_model(message: dict) -> str:
     """Delete a model previously stored at database.
 
     Args:
         message (dict) : Model's id.
     Returns:
-        response (dict) : Node's response.
+        response (str) : Node's response.
     """
     model_id = message[MSG_FIELD.MODEL_ID]
     result = model_controller.delete(current_user.worker, model_id)
-    return result
+    return json.dumps(result)
 
 
 @authenticated_only
-def get_models(message: dict) -> dict:
+def get_models(message: dict) -> str:
     """Get a list of stored models.
 
     Returns:
-        response (dict) : List of models stored at this node.
+        response (str) : List of models stored at this node.
     """
     model_list = model_controller.models(current_user.worker)
-    return model_list
+    return json.dumps(model_list)
 
 
 @authenticated_only
-def run_inference(message: dict) -> dict:
+def run_inference(message: dict) -> str:
     """Run dataset inference with a specifc model stored in this node.
 
     Args:
         message (dict) : Serialized dataset, model id and dataset's metadata.
     Returns:
-        response (dict) : Model's inference.
+        response (str) : Model's inference.
     """
     ## If worker is empty, load previous database tensors.
     if not current_user.worker._objects:
@@ -92,11 +92,13 @@ def run_inference(message: dict) -> dict:
 
         # If model exists but not allow remote inferences
         if not response[MSG_FIELD.PROPERTIES][MSG_FIELD.ALLOW_REMOTE_INFERENCE]:
-            return {
-                MSG_FIELD.SUCCESS: False,
-                "not_allowed": True,
-                RESPONSE_MSG.ERROR: "You're not allowed to run inferences on this model.",
-            }
+            return json.dumps(
+                {
+                    MSG_FIELD.SUCCESS: False,
+                    "not_allowed": True,
+                    RESPONSE_MSG.ERROR: "You're not allowed to run inferences on this model.",
+                }
+            )
 
         model = response[MSG_FIELD.PROPERTIES][MSG_FIELD.MODEL]
 
@@ -124,6 +126,8 @@ def run_inference(message: dict) -> dict:
 
         # We can now remove data from the objects
         del data
-        return {RESPONSE_MSG.SUCCESS: True, RESPONSE_MSG.INFERENCE_RESULT: predictions}
+        return json.dumps(
+            {RESPONSE_MSG.SUCCESS: True, RESPONSE_MSG.INFERENCE_RESULT: predictions}
+        )
     else:
-        return response
+        return json.dumps(response)

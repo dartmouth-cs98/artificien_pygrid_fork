@@ -7,7 +7,7 @@ from syft.serde import protobuf
 from syft_proto.execution.v1.state_pb2 import State as StatePB
 
 from ...core.exceptions import ModelNotFoundError
-from ...core.warehouse import Warehouse
+from ...storage.warehouse import Warehouse
 from ..models.ai_model import Model, ModelCheckPoint
 
 
