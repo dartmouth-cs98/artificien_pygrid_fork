@@ -2,7 +2,7 @@
 from ...core.exceptions import ProtocolNotFoundError
 
 # PyGrid imports
-from ...core.warehouse import Warehouse
+from ...storage.warehouse import Warehouse
 from .protocol import Protocol
 
 
