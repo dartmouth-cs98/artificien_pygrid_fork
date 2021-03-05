@@ -238,6 +238,8 @@ class CycleManager:
         logging.info("model: %s" % str(_model))
         model_id = _model.id
         logging.info("model id: %d" % model_id)
+        model_name = server_config['model_name']
+        logging.info("model name: %s" % model_name)
         _checkpoint = model_manager.load(model_id=model_id)
         logging.info("current checkpoint: %s" % str(_checkpoint))
         model_params = model_manager.unserialize_model_params(_checkpoint.value)
@@ -332,13 +334,16 @@ class CycleManager:
             orchestration_endpoint = 'http://' + os.environ.get("MASTER_NODE_URL") + '/model_progress'
             data = {
                 'percent_complete': (completed_cycles_num * 100) // max_cycles,
-                'model_id': model_id
+                'model_id': model_name
             }
             response = requests.post(url=orchestration_endpoint, json=data)
             logging.info('Connected to Master Node')
-            logging.info('Response: ', response.content)
+            logging.info(orchestration_endpoint)
+            logging.info('Response:')
+            logging.info(response.text)
         except:
             logging.warning('Could not connect to master node')
+            logging.info(orchestration_endpoint)
             pass
         # END ARTIFICIEN EDIT
 
