@@ -190,7 +190,7 @@ class CycleManager:
             logging.info("cycle is already completed!")
             return
 
-        server_config, _ = process_manager.get_configs(id=cycle.fl_process_id)
+        server_config, client_config = process_manager.get_configs(id=cycle.fl_process_id)
         logging.info("server_config: %s" % json.dumps(server_config, indent=2))
 
         received_diffs = self._worker_cycles.count(cycle_id=cycle_id, is_completed=True)
@@ -217,9 +217,9 @@ class CycleManager:
         logging.info("ready_to_average: %d" % int(ready_to_average))
 
         if ready_to_average and no_protocol:
-            self._average_plan_diffs(server_config, cycle)
+            self._average_plan_diffs(server_config, client_config, cycle)
 
-    def _average_plan_diffs(self, server_config: dict, cycle):
+    def _average_plan_diffs(self, server_config: dict, client_config: dict, cycle):
         """skeleton code Plan only.
 
         - get cycle
@@ -238,7 +238,7 @@ class CycleManager:
         logging.info("model: %s" % str(_model))
         model_id = _model.id
         logging.info("model id: %d" % model_id)
-        model_name = server_config['model_name']
+        model_name = client_config['name']
         logging.info("model name: %s" % model_name)
         _checkpoint = model_manager.load(model_id=model_id)
         logging.info("current checkpoint: %s" % str(_checkpoint))
@@ -327,11 +327,12 @@ class CycleManager:
         else:
             logging.info("FL is done!")
 
-
         # START ARTIFICIEN EDIT
         # Report the model progress (percent done at the end of each cycle) to the orchestration node
+        logging.info('You should see this message')
+        orchestration_endpoint = 'http://' + os.environ.get("MASTER_NODE_URL") + '/model_progress'
+        logging.info(orchestration_endpoint)
         try:
-            orchestration_endpoint = 'http://' + os.environ.get("MASTER_NODE_URL") + '/model_progress'
             data = {
                 'percent_complete': (completed_cycles_num * 100) // max_cycles,
                 'model_id': model_name
@@ -343,7 +344,6 @@ class CycleManager:
             logging.info(response.text)
         except:
             logging.warning('Could not connect to master node')
-            logging.info(orchestration_endpoint)
             pass
         # END ARTIFICIEN EDIT
 
