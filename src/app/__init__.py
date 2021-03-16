@@ -36,7 +36,9 @@ def set_database_config(app, test_config=None, verbose=False):
     # Create the database via the default postgres db (if it doesn't yet exist)
 
     node_id = os.environ.get("NODE_ID")
+    node_id = node_id.lower().replace('-', '')  # lowercase and replace dashes if they exist
     db_url = os.environ.get("DATABASE_URL") + node_id + 'db'
+
 
     try:
         # Check if DB exists
