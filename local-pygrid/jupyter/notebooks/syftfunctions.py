@@ -14,6 +14,9 @@ from datetime import date
 import torch as th
 from torch import nn
 
+import warnings
+warnings.filterwarnings('ignore')
+
 import os
 from websocket import create_connection
 import json
@@ -23,8 +26,11 @@ import requests
 import boto3
 from warrant import Cognito
 
+import warnings
+warnings.filterwarnings('ignore')
+
 try:
-  ecs_client = boto3.client('ecs', region_name=region_name)
+    ecs_client = boto3.client('ecs', region_name=region_name)
 except BaseException as exe:
     print(exe)
 
@@ -46,7 +52,7 @@ def get_my_purchased_datasets(password):
         u = Cognito(userPoolId, clientId, username=user_id)
         u.authenticate(password=password)
     except:
-        return {"Error": "Failed to authenticate User"}
+        raise Exception("Error: Failed to authenticate User")
 
     accessId = u.access_token
     # PyGrid masterNode address from constants.py
@@ -57,7 +63,10 @@ def get_my_purchased_datasets(password):
     headers["Authorization"] = "Bearer " + accessId
     headers["Content-Type"] = "application/json"
     node = {"user_id": user_id}
-    resp = requests.post(masterNodeAddy, headers=headers, json=node)
+    try:
+        resp = requests.post(masterNodeAddy, headers=headers, json=node)
+    except:
+        raise Exception("Error: Failed to contact Artificien masternode API. Contact Artificien Support")
     resp = resp.json()
     print(resp)
     return
@@ -127,7 +136,7 @@ def set_model_params(module, params_list, start_param_idx=0):
     return param_idx
 
 
-def def_training_plan(model, X, y, lr=0.01, batch_size=3, plan_dict=None):
+def def_training_plan(model, X, y, batch_size, lr, plan_dict=None):
 
     """
     :param model: A model built in pytorch
@@ -188,7 +197,7 @@ def def_training_plan(model, X, y, lr=0.01, batch_size=3, plan_dict=None):
     # Create dummy input parameters to make the trace, build model
     model_params = [param.data for param in model.parameters()]  # raw tensors instead of nn.Parameter
     lr = th.tensor([float(lr)])
-    batch_size = th.tensor([float(batch_size)])
+    batch_size = th.tensor([int(batch_size)])
     
     training_plan.build(X, y, batch_size, lr, model_params, trace_autograd=True)
     
@@ -223,7 +232,7 @@ def artificien_connect(dataset_id, model_id, features, labels, password):
         u = Cognito(userPoolId, clientId, username=os.environ['JUPYTERHUB_USER'])
         u.authenticate(password=password)
     except:
-        exit({"Error": "Failed to authenticate User"})
+        raise Exception("Error : Failed to Cognito authenticate Jupyter User. Check your password.")
 
     accessId = u.access_token
     # PyGrid masterNode address from constants.py
@@ -234,16 +243,22 @@ def artificien_connect(dataset_id, model_id, features, labels, password):
     headers["Authorization"] = "Bearer " + accessId
     headers["Content-Type"] = "application/json"
     node = {"dataset_id": dataset_id, "model_id": model_id, "features": features, "labels": labels}
-    resp = requests.post(masterNodeAddy, headers=headers, json=node)
+    try:
+        resp = requests.post(masterNodeAddy, headers=headers, json=node)
+    except:
+        raise Exception("Error: Failed to contact Artificien masternode API. Contact Artificien Support")
+
     resp = resp.json()
-    print(resp)
     # ping masternode until the ready status is recieved (the node is deployed)
     while resp.get('status') != 'ready':
         count = count + 1
         if 'error' in resp:
-            exit({'error': 'failed to connect'})
+            raise Exception(resp)
         time.sleep(30)
-        resp = requests.post(masterNodeAddy, headers=headers, json=node)
+        try:
+            resp = requests.post(masterNodeAddy, headers=headers, json=node)
+        except:
+            raise Exception("Error: Failed to contact Artificien masternode API. Contact Artificien Support")
         resp = resp.json()
         print(resp.get('status'))
 
@@ -256,31 +271,41 @@ def artificien_connect(dataset_id, model_id, features, labels, password):
         print("Your model's trainers are waking from a long slumber. This may be a few minutes")
         time.sleep(180)
 
-    # connect to grid
-    grid = ModelCentricFLClient(id=dataset_id, address=nodeURL, secure=False)
-    grid.connect()  # These name/version you use in worker
+    try:
+        grid = ModelCentricFLClient(id=dataset_id, address=nodeURL, secure=False)
+        grid.connect()  # These name/version you use in worker
+    except:
+        raise Exception("Error: Failed to connect to the Pygrid Node")
     # return grid
     return grid
 
-def send_model(name, version, batch_size, learning_rate, max_updates, model_params, training_plan, avg_plan, dataset_id, features, labels, password):
+def send_model(password:str, name:str, version:str, dataset_id: str, min_workers:int, max_workers:int, num_cycles: int, 
+               batch_size:int, learning_rate:str, features:list, labels:list, model_params, training_plan,
+               avg_plan):
     """ Function to send model to node """
 
     # Add username to the model name so as to avoid conflicts across users
     name = name + '-' + version + '-' + os.environ['JUPYTERHUB_USER']
     table = dynamodb.Table('model_table')
 
-    table.put_item(
-        Item={
-            'model_id': name,
-            'active_status': 1,
-            'version': version,
-            'dataset': dataset_id,
-            'date_submitted': str(date.today()),
-            'owner_name': str(os.environ['JUPYTERHUB_USER']),
-            'percent_complete': 0,
-        }
-    )
-    
+    try:
+        table.put_item(
+            Item={
+                'model_id': name,
+                'active_status': 1,
+                'version': version,
+                'dataset': dataset_id,
+                'date_submitted': str(date.today()),
+                'owner_name': str(os.environ['JUPYTERHUB_USER']),
+                'percent_complete': 0,
+                'devices_trained_this_cycle': 0,
+                'loss_this_cycle': -1,
+                'acc_this_cycle': -1 # will remain -1 unless accuracy is relevant to the use case
+            }
+        )
+    except:
+        return {"error": "failed to put to dynamodb"}
+
     grid = artificien_connect(dataset_id, name, features, labels, password)
 
     client_config = {
@@ -288,21 +313,20 @@ def send_model(name, version, batch_size, learning_rate, max_updates, model_para
         "version": version,
         "batch_size": batch_size,
         "lr": learning_rate,
-        "max_updates": max_updates  # custom syft.js option that limits number of training loops per worker
+        "max_updates": 10  # custom syft.js option that limits number of training loops per worker
     }
 
     server_config = {
-        "min_workers": 1,
-        "max_workers": 1,
+        "min_workers": min_workers,
+        "max_workers": max_workers,
         "pool_selection": "random",
         "do_not_reuse_workers_until_cycle": 1,
-        "cycle_length": 28800,  # max cycle length in seconds
-        "num_cycles": 3,  # max number of cycles
+        "cycle_length": 600,  # max cycle length in seconds
+        "num_cycles": num_cycles,  # number of cycles
         "max_diffs": 1,  # number of diffs to collect before avg
         "minimum_upload_speed": 0,
         "minimum_download_speed": 0,
-        "iterative_plan": True,  # tells PyGrid that avg plan is executed per diff
-        "model_name": name
+        "iterative_plan": True  # tells PyGrid that avg plan is executed per diff
     }
 
     model_params_state = State(
@@ -312,13 +336,27 @@ def send_model(name, version, batch_size, learning_rate, max_updates, model_para
         ]
     )
 
-    response = grid.host_federated_training(
-        model=model_params_state,
-        client_plans={'training_plan': training_plan},
-        client_protocols={},
-        server_averaging_plan=avg_plan,
-        client_config=client_config,
-        server_config=server_config
-    )
+    try:
+        response = grid.host_federated_training(
+            model=model_params_state,
+            client_plans={'training_plan': training_plan},
+            client_protocols={},
+            server_averaging_plan=avg_plan,
+            client_config=client_config,
+            server_config=server_config
+        )
+    except:
+        #node hasn't been hit for a while, let's try again
+        try:
+            response = grid.host_federated_training(
+                model=model_params_state,
+                client_plans={'training_plan': training_plan},
+                client_protocols={},
+                server_averaging_plan=avg_plan,
+                client_config=client_config,
+                server_config=server_config
+            )
+        except:
+            raise Exception("Error: You've already submitted a model with same name & version, Please Change")
 
     return print("Host response:", response)
