@@ -23,6 +23,7 @@ To test any edits you are making to the PyGrid code itself, you can run a local 
 1. `cd ./local-pygrid`
 3. `docker compose up`. After everything starts running, you should find PyGrid running on `localhost:5000`. You should also find our master node running at `localhost:5001`.
 4. Using the logs in your terminal, find the jupyterlab URL, and click it to enter jupyter lab. You can interact with your local stack from this jupyter lab instance, which has the artificien library (`artificienlib`) preinstalled and ready to go for testing purposes.
+5. Note that, for local testing, you'll want to import `syftfunctions` directly, since it will use the values in the `constants.py` file - configured to use the localhost ports from your local stack. If you intead want to test the live artificien infrastructure, then just import `artificienlib` directly.
 6. run `docker compose down` in the `local-pygrid` directory, once you are done testing
 
 ### Without Docker
