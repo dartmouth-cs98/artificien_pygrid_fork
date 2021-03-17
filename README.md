@@ -1,13 +1,26 @@
 # artificien_pygrid_fork
 
-The majority of this code is pulled directly from [Pygrid](https://github.com/OpenMined/PyGrid) itself. Any edits made by artificien start with the comment "#START ARTIFICIEN EDIT" and end with the comment "#END ARTIFICIEN EDIT". The code, like the pygrid repo itself, builds a Docker image that can be deployed to the elastic container service (ECS) on the cloud. To test any edits you are making to the PyGrid code itself, you can run a local version of the PyGrid server on your computer using this code. To do so, follow these steps:
+This repocontains the Pygrid code, along with all of Artificien's modifications to it. PyGrid is the backend service we use to faciliate machine learning. It is the place that all new models get sent to, the place where IOS devices pull down models to train from, and the place where model's are iteratively updated and improved *a la* federated learning. 
+
+## Architecture
+
+The changes we've made from the standard Pygrid are mainly these 2:
+
+1. We've made it so that all of the Pygrid nodes we launch as an organization all connect to the same, serverless AWS Aurora PostgreSQL database. This means that our I/O is virtually unlimited, since this serverless database scales wtih demand (both resolution speed and storage).
+2. We've made it so that the Pygrid nodes that we launch notify our master node about model progress (i.e. how close a model is to done training) every time a model completes a training cycle.
+
+The vast majority of this code is pulled directly from [Pygrid](https://github.com/OpenMined/PyGrid) itself. Any edits made by artificien start with the comment "#START ARTIFICIEN EDIT" and end with the comment "#END ARTIFICIEN EDIT".
+
+## Setup/ Usage
+
+To test any edits you are making to the PyGrid code itself, you can run a local version of the PyGrid server on your computer using this code. To do so, follow these steps:
 
 ### With `docker`, and `docker-compose` installed
 
 1. `cd ./local-pygrid`
-2. `docker compose up -d`. After everything starts running, you should find PyGrid running on `localhost:5000`.
-3. Head to the `model-upload` section of this nodebook, start a `jupyter` notebook running, and run the notebook there to upload a new model to your local pygrid.
-4. run `docker compose down` in the `local-pygrid` directory, once you are done.
+3. `docker compose up`. After everything starts running, you should find PyGrid running on `localhost:5000`. You should also find our master node running at `localhost:5000`.
+4. Using the logs in your terminal, find the jupyterlab URL, and right click it to enter jupyter lab. You can interact with your local stack from this jupyterlab URL, which has the artificien library preinstalled and ready to go for testing purposes.
+6. run `docker compose down` in the `local-pygrid` directory, once you are done testing
 
 ### Without Docker
 
@@ -20,4 +33,11 @@ The majority of this code is pulled directly from [Pygrid](https://github.com/Op
 7. Head to the `model-upload` section of this nodebook, start a `jupyter` notebook running, and run the notebook there to upload a new model to your local pygrid.
 8. When you are done testing, simply hit `CTRL-C` to end the PyGrid job. You may also want to kill your Postgres Server
 
-Ideally, when testing new changes, you should also test that the Docker build of your newly editied pygrid code succeeds. To do this, run `docker build -t my-pygrid .`, and make sure the build goes through successfully. Alternatively, you can use the `docker`-based test method to get PyGrid running locally, shown above. This repo is set up to auto-push our PyGrid docker image to DockerHub, so that we always have the latest copy accessible to us on the internet. You can view the process and messages associated with the Docker image build process and push to Dockerhub on the Github Actions tab of this repo. You can obtain the published image online at [Matt Kenney's Dockerhub](https://hub.docker.com/r/mkenney1/artificien_pygrid).
+Ideally, when testing new changes, you should also test that the Docker build of your newly editied pygrid code succeeds. To do this, run `docker build -t my-pygrid .`, and make sure the build goes through successfully. Alternatively, you can use the `docker`-based test method to get PyGrid running locally, shown above. 
+
+
+## Deployment
+The code, like the pygrid repo itself, builds a Docker image that can be deployed to the elastic container service (ECS) on the cloud. Every time this code is changed, a Github Action is triggered, which in turn builds and publishes the new Docker image.
+
+## Authors
+- Matt Kenney
