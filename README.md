@@ -15,6 +15,9 @@ The vast majority of this code is pulled directly from [Pygrid](https://github.c
 
 To test any edits you are making to the PyGrid code itself, you can run a local version of the PyGrid server on your computer using this code. To do so, follow these steps:
 
+### Either Method
+1. Make sure your AWS credentials are set up
+
 ### With `docker`, and `docker-compose` installed
 
 1. `cd ./local-pygrid`
