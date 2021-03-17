@@ -20,13 +20,11 @@ services:
     build: ../
     restart: always
     environment:
-      NODE_ID: testnode4
+      NODE_ID: Artificien-Monkeys
       ADDRESS: http://localhost:5000
       PORT: 5000
-      MASTER_NODE_URL: 172.18.177.169:5001
+      MASTER_NODE_URL: masternode:5001
       DATABASE_URL: postgresql://pygridUser:abadpassword@db:5432/
-    links:
-        - db
     ports:
       - 5000:5000
     networks:
@@ -49,11 +47,17 @@ services:
     build : ./jupyter
     restart: always
     environment:
-      JUPYTERHUB_USER: kenneym
+      JUPYTERHUB_USER: mkenney
+      PASSWORD: artificien1
+      GRANT_SUDO: "yes"
+    user: root
     ports:
       - 8888:8888
     networks:
       - pygrid-net
+    volumes:
+      - ~/.aws/:/home/jovyan/.aws  # Share AWS Creds with container
+      - ./jupyter/notebooks/:/home/jovyan/work
 
   adminer:
     image: adminer
